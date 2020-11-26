@@ -3,7 +3,7 @@
     <!-- 入库单管理 -->
     <div v-if="isShowIncomeManager">
       <el-form ref="form" :inline="true" :model="form" label-width="120px">
-        <el-form-item label="入库单编号">
+        <el-form-item label="出库单编号">
           <el-input v-model="form.identifier" />
         </el-form-item>
         <el-form-item label="创建时间">
@@ -20,15 +20,10 @@
             <el-date-picker
               v-model="form.endTime"
               type="date"
-              placeholder="Pick a time"
+              placeholder="Pick a date"
               style="width: 100%;"
             />
-          </el-col> </el-form-item><br>
-        <el-form-item label="采购员">
-          <el-input v-model="form.buyer" />
-        </el-form-item>
-        <el-form-item label="验货员">
-          <el-input v-model="form.checker" />
+          </el-col>
         </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="onSubmit">搜索</el-button>
@@ -55,6 +50,10 @@
             @click="orderStatus"
           >已入库</el-button>
         </el-form-item>
+        <br>
+        <el-form-item label="">
+          <el-button type="primary" @click="createOrder">创建出库单</el-button>
+        </el-form-item>
       </el-form>
       <!-- 表格 -->
       <el-table
@@ -69,25 +68,17 @@
         <el-table-column
           align="center"
           property="id"
-          label="入库单编号"
+          label="出库单编号"
           width="200"
         />
         <el-table-column label="创建时间" width="110" property="createTime" />
         <el-table-column
-          label="入库状态"
-          property="status"
+          label="出库总量"
+          property="outAmount"
           align="center"
           width="150"
         />
-        <el-table-column label="入库总数" property="total" align="center" />
-        <el-table-column label="采购员" property="buyer" align="center" />
-        <el-table-column
-          align="center"
-          prop="checker"
-          label="验货员"
-          width="200"
-          property="checker"
-        />
+        <el-table-column label="出库状态" property="status" align="center" />
         <el-table-column
           align="center"
           prop="handle"
@@ -97,6 +88,10 @@
         >
           <template slot-scope="scoped">
             <span class="btnCheck" @click="checkDetail(scoped)">查看</span>
+            <span
+              class="btnCheck"
+              @click="createReceiveOrder(scoped)"
+            >生成发货单</span>
           </template>
         </el-table-column>
       </el-table>
@@ -111,18 +106,22 @@
         @current-change="handleCurrentChange"
       />
     </div>
-    <!-- 查看详情 -->
-    <order-detail v-if="!isShowIncomeManager" :check-order="checkOrder" />
+    <!-- 创建出库单 -->
+    <out-manger v-if="isShowOutOrder" />
+    <!-- 生成出库单 -->
+    <create-out-manager v-if="showOutOrderDetail" :check-order="checkOrder" />
   </div>
 </template>
 
 <script>
-import { getIncomeList } from '@/api/incomeManager'
-import OrderDetail from './orderDetail'
+import { getOutOrder, createOutOrder } from '@/api/outManager'
+import OutManger from './outManager'
+import CreateOutManager from './createOuterManager'
 
 export default {
   components: {
-    OrderDetail
+    OutManger,
+    CreateOutManager
   },
   data() {
     return {
@@ -130,6 +129,8 @@ export default {
       listLoading: false,
       checkOrder: {},
       isShowIncomeManager: true,
+      isShowOutOrder: false,
+      showOutOrderDetail: false,
       currentPage: 1,
       pageSize: '10',
       form: {
@@ -143,19 +144,23 @@ export default {
     }
   },
   created() {
-    this.getIncomeList()
+    this.getOutOrderLists()
   },
   methods: {
     onSubmit() {
       // this.$message('submit!')
       console.log(this.form)
-      this.getIncomeList()
+      this.getOutOrderLists()
     },
     // 获取入库单列表
-    getIncomeList() {
+    getOutOrderLists() {
       const { form } = this || {}
       this.listLoading = true
-      getIncomeList({ ...this.form, currentPage: this.currentPage, pageSize: this.pageSize }).then(res => {
+      getOutOrder({
+        ...form,
+        currentPage: this.currentPage,
+        pageSize: this.pageSize
+      }).then(res => {
         this.list = res.data.items
         this.listLoading = false
       })
@@ -168,28 +173,62 @@ export default {
       } else {
         this.form.status = target.parentNode.getAttribute('status')
       }
-      this.getIncomeList()
+      this.getOutOrderLists()
     },
     // 查看
     checkDetail({ col, row }) {
-      // console.log(row)
       this.checkOrder = row
-      this.handleISshowIncome(false)
+      this.showDetail()
+    },
+    showDetail() {
+      this.isShowIncomeManager = false
+      this.isShowOutOrder = false
+      this.showOutOrderDetail = true
+    },
+    createOrder() {
+      this.isShowIncomeManager = false
+      this.isShowOutOrder = true
+      this.showOutOrderDetail = false
     },
     //
-    handleISshowIncome(status) {
-      this.isShowIncomeManager = status
+    handleISshowIncome() {
+      this.isShowIncomeManager = true
+      this.isShowOutOrder = false
+      this.showOutOrderDetail = false
+    },
+    // 创建发货单
+    createReceiveOrder({ col, row } = {}) {
+      row = row || this.checkOrder
+      this.$confirm('是否生成发货单', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      })
+        .then(() => {
+          createOutOrder(row).then(res => {
+            this.$message({
+              type: 'success',
+              message: '生成成功'
+            })
+          })
+        })
+        .catch(() => {
+          // this.$message({
+          //   type: 'info',
+          //   message: '已取消删除'
+          // })
+        })
     },
     // 分页处理
     handleSizeChange(val) {
       console.log(`每页`, val)
       this.pageSize = val
-      this.getIncomeList()
+      this.getOutOrderLists()
     },
     handleCurrentChange(val) {
       console.log(`当前页`, val)
       this.currentPage = val
-      this.getIncomeList()
+      this.getOutOrderLists()
     }
   }
 }

@@ -71,7 +71,7 @@ export const constantRoutes = [
     children: [
       {
         path: 'index',
-        component: () => import('@/views/outManager/form/index'), // Parent router-view
+        component: () => import('@/views/outManager/index'), // Parent router-view
         name: '出库单管理',
         meta: { title: '出库单管理', icon: 'nested' }
       }

@@ -3,10 +3,10 @@
     <!-- 入库单管理 -->
     <div v-if="isShowIncomeManager">
       <el-form ref="form" :inline="true" :model="form" label-width="120px">
-        <el-form-item label="入库单编号">
+        <el-form-item label="订单编号">
           <el-input v-model="form.identifier" />
         </el-form-item>
-        <el-form-item label="创建时间">
+        <el-form-item label="下单时间">
           <el-col :span="11">
             <el-date-picker
               v-model="form.startTime"
@@ -23,39 +23,18 @@
               placeholder="Pick a time"
               style="width: 100%;"
             />
-          </el-col> </el-form-item><br>
-        <el-form-item label="采购员">
-          <el-input v-model="form.buyer" />
+          </el-col>
         </el-form-item>
-        <el-form-item label="验货员">
-          <el-input v-model="form.checker" />
-        </el-form-item>
+
         <el-form-item>
-          <el-button type="primary" @click="onSubmit">搜索</el-button>
-          <!-- <el-button @click="onCancel">Cancel</el-button> --> </el-form-item><br>
-        <el-form-item class="btns" label="状态:">
-          <el-button
-            status="0"
-            :class="form.status === '0' ? 'checked' : ''"
-            @click="orderStatus"
-          >全部</el-button>
-          <el-button
-            status="1"
-            :class="form.status === '1' ? 'checked' : ''"
-            @click="orderStatus"
-          >未入库</el-button>
-          <el-button
-            status="2"
-            :class="form.status === '2' ? 'checked' : ''"
-            @click="orderStatus"
-          >已拒绝</el-button>
-          <el-button
-            status="3"
-            :class="form.status === '3' ? 'checked' : ''"
-            @click="orderStatus"
-          >已入库</el-button>
+          <el-button type="primary" @click="onSubmit">搜索</el-button><br>
+        </el-form-item><br>
+        <el-form-item>
+          <el-button @click="reset">取消</el-button>
+          <el-button type="primary" @click="createOutOrder">生成出库单</el-button>
         </el-form-item>
       </el-form>
+
       <!-- 表格 -->
       <el-table
         v-loading="listLoading"
@@ -64,41 +43,31 @@
         border
         fit
         highlight-current-row
+        @selection-change="handleSelectionChange"
       >
-        <!-- <el-table-column type="selection" align="center" width="55" /> -->
+        <el-table-column type="selection" align="center" width="55" />
         <el-table-column
           align="center"
           property="id"
           label="入库单编号"
           width="200"
         />
-        <el-table-column label="创建时间" width="110" property="createTime" />
+        <el-table-column label="下单时间" width="110" property="createTime" />
         <el-table-column
-          label="入库状态"
-          property="status"
+          label="商品信息"
+          property="info"
           align="center"
           width="150"
         />
-        <el-table-column label="入库总数" property="total" align="center" />
-        <el-table-column label="采购员" property="buyer" align="center" />
+        <el-table-column label="收货人" property="receiver" align="center" />
+        <el-table-column label="收货人手机号" property="recePhone" align="center" />
         <el-table-column
           align="center"
           prop="checker"
-          label="验货员"
+          label="收货地址"
           width="200"
-          property="checker"
+          property="address"
         />
-        <el-table-column
-          align="center"
-          prop="handle"
-          label="操作"
-          property="handle"
-          width="200"
-        >
-          <template slot-scope="scoped">
-            <span class="btnCheck" @click="checkDetail(scoped)">查看</span>
-          </template>
-        </el-table-column>
       </el-table>
       <el-pagination
         v-if="list"
@@ -111,18 +80,15 @@
         @current-change="handleCurrentChange"
       />
     </div>
-    <!-- 查看详情 -->
-    <order-detail v-if="!isShowIncomeManager" :check-order="checkOrder" />
   </div>
 </template>
 
 <script>
-import { getIncomeList } from '@/api/incomeManager'
-import OrderDetail from './orderDetail'
+import { getOutList, createOutOrder } from '@/api/outManager'
 
 export default {
   components: {
-    OrderDetail
+
   },
   data() {
     return {
@@ -130,32 +96,64 @@ export default {
       listLoading: false,
       checkOrder: {},
       isShowIncomeManager: true,
+      multipleSelection: [], // 表格选中结果
       currentPage: 1,
       pageSize: '10',
       form: {
         identifier: '',
         startTime: '',
-        endTime: '',
-        buyer: '',
-        checker: '',
-        status: '0'
+        endTime: ''
       }
     }
   },
   created() {
-    this.getIncomeList()
+    this.getOutList()
   },
   methods: {
+    // 搜索
     onSubmit() {
       // this.$message('submit!')
-      console.log(this.form)
-      this.getIncomeList()
+      this.getOutList()
+    },
+    // 取消
+    reset() {
+      this.$parent.handleISshowIncome()
+    },
+    // 生成出库单
+    createOutOrder() {
+      const { multipleSelection } = this || {}
+      if (multipleSelection.length === 0) {
+        this.$message({
+          type: 'warning',
+          message: '请选择最少一条数据'
+        })
+        return
+      }
+      // this.$parent.createOutOrder = multipleSelection
+      // this.$parent.showDetail()
+      this.createOutOrderList()
+    },
+    createOutOrderList() {
+      const { multipleSelection } = this || {}
+      createOutOrder(multipleSelection).then(res => {
+        this.$message({
+          type: 'success',
+          message: '生成成功'
+        })
+      })
+    },
+    hanleCreateOutOrder(status) {
+      this.isShowIncomeManager = status
     },
     // 获取入库单列表
-    getIncomeList() {
+    getOutList() {
       const { form } = this || {}
       this.listLoading = true
-      getIncomeList({ ...this.form, currentPage: this.currentPage, pageSize: this.pageSize }).then(res => {
+      getOutList({
+        ...form,
+        currentPage: this.currentPage,
+        pageSize: this.pageSize
+      }).then(res => {
         this.list = res.data.items
         this.listLoading = false
       })
@@ -184,12 +182,17 @@ export default {
     handleSizeChange(val) {
       console.log(`每页`, val)
       this.pageSize = val
-      this.getIncomeList()
+      this.getOutList()
     },
     handleCurrentChange(val) {
       console.log(`当前页`, val)
       this.currentPage = val
-      this.getIncomeList()
+      this.getOutList()
+    },
+    // 表格选中
+    handleSelectionChange(val) {
+      // console.log(this.multipleSelection)
+      this.multipleSelection = val
     }
   }
 }
