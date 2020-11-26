@@ -83,7 +83,7 @@
         v-if="list"
         class="pageination"
         background
-        layout="prev, pager, next"
+        layout="total, sizes, prev, pager, next, jumper"
         :total="list.length"
         :current-page="currentPage"
         @size-change="handleSizeChange"
@@ -174,12 +174,14 @@ export default {
     },
     // 分页处理
     handleSizeChange(val) {
-      // console.log(`每页`, val)
+      console.log(`每页`, val)
+      this.pageSize = val
+      this.getInventory({ ...this.searchTypes, currentPage: this.currentPage, pageSize: val })
     },
     handleCurrentChange(val) {
       console.log(`当前页`, val)
       this.currentPage = val
-      this.getInventory({ ...this.searchTypes, currentPage: this.currentPage })
+      this.getInventory({ ...this.searchTypes, currentPage: val, pageSize: this.pageSize })
     },
     leadOut() {
       inventoryLeadOut().then(res => {
