@@ -94,4 +94,8 @@ export default {
 .mobile .fixed-header {
   width: 100%;
 }
+
+.commonPadding{
+  padding: 0 15rpx
+}
 </style>
