@@ -99,6 +99,7 @@
 </template>
 
 <script>
+// 引入接口api
 import { getList, getProdTypes, inventoryLeadOut } from '@/api/inventory'
 import CreateInventory from './createInventory'
 
@@ -116,6 +117,7 @@ export default {
         productType: ''
       },
       currentPage: 1, // 当前页数
+      pageSize: 10, // 分页条数
       types: null,
       showInventory: true, // 展示库存列表
       multipleSelection: [], // 表格选中结果
@@ -128,7 +130,7 @@ export default {
   methods: {
     // 搜索
     onSubmit() {
-      this.getInventory({ ...this.searchTypes, currentPage: this.currentPage })
+      this.getInventory({ ...this.searchTypes })
     },
     // 获取表格 和商品分类
     fetchData() {
@@ -139,8 +141,14 @@ export default {
     getInventory(params = {}) {
       this.listLoading = true
       this.multipleSelection = []
-      getList(params).then(response => {
-        this.list = response.data.items
+      const { currentPage: pageNum, pageSize } = this || {}
+      // 发起请求
+      getList({ goodName: 'red', pageNum, pageSize }).then(response => {
+        // 解析接口返回数据
+        const { list, pageSize, pageNum } = response.data || {}
+        this.list = list // 表格数据
+        this.pageSize = pageSize // 每页页数
+        this.pageNum = pageNum // 当前页
         this.listLoading = false
       })
     },

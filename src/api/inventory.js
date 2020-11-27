@@ -3,7 +3,7 @@ import request from '@/utils/request'
 // 获取库存列表
 export function getList(params) {
   return request({
-    url: '/vue-admin-template/inventory/list',
+    url: '/getInstockGoods',
     method: 'get',
     params
   })
